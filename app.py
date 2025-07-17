@@ -1,0 +1,132 @@
+import streamlit as st
+import pandas as pd
+
+
+# Define global variables for column mappings
+COLUMN_MAPPINGS = {
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "email_1": "Email",
+    "email_2": "Email 2",
+    "email_3": "Email 3",
+    "phone_1": "Phone",
+    "phone_2": "Cell Phone 2",
+    "phone_3": "Cell Phone 3",
+    "address": "Primary Address",
+    "city": "Primary City",
+    "state": "Primary State",
+    "zip_code": "Primary Zip",
+}
+
+def columnComplier(df):
+    emails = []
+    phones = []
+    df_copy = df.copy()
+
+    for _, row in df_copy.iterrows():
+        email_list = []
+        phone_list = []
+
+        # Combine Email 2 and 3
+        if pd.notna(row.get('Email 2')):
+            email_list.append(row['Email 2'])
+        if pd.notna(row.get('Email 3')):
+            email_list.append(row['Email 3'])
+
+        # Combine Cell Phone 2 and 3
+        if pd.notna(row.get('Cell Phone 2')):
+            phone_list.append(row['Cell Phone 2'])
+        if pd.notna(row.get('Cell Phone 3')):
+            phone_list.append(row['Cell Phone 3'])
+
+        emails.append(email_list)
+        phones.append(phone_list)
+
+    def safe_phone_str(p):
+        try:
+            # Convert float like 1234567890.0 to int, then to str
+            f = float(p)
+            i = int(f)
+            if f == i:
+                return str(i)
+            return str(p)
+        except:
+            return str(p)
+
+    phones = [[safe_phone_str(p) for p in phone_list] for phone_list in phones]
+
+    emails = [", ".join(map(str, e)) for e in emails]
+    phones = [", ".join(map(str, p)) for p in phones]
+
+    df_copy['Email 2'] = emails
+    df_copy['Cell Phone 2'] = phones
+
+    df_copy = df_copy.drop(columns=['Email 3', 'Cell Phone 3'], errors='ignore')
+
+    df_copy.rename(columns={'Email 2': 'Additional email addresses', 'Cell Phone 2': 'Additional phone numbers'}, inplace=True)
+
+    return df_copy
+    
+
+
+def main():
+    st.title('Couch Drop to GoHighLevel CSV Converter')
+
+    st.info("""
+    Upload a CSV file. The app will convert your Couch Drop CSV into a format that can be imported into GoHighLevel.
+    """)
+
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+
+    hashtag = st.text_input("(Optional) Enter a hashtag(s). For multiple hashtags, separate them with a '|' with no spaces.")
+    st.write("For example: Barrington|Naperville")
+
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        
+        phone_cols = ['Phone', 'Cell Phone 2', 'Cell Phone 3']
+        for col in phone_cols:
+            if col in df.columns:
+                df[col] = df[col].fillna('')
+                def clean_phone(x):
+                    s = str(x).strip() # Convert to string immediately and strip whitespace
+                    if s.endswith('.0'): # Check if it ends with .0
+                        return s[:-2]    # If so, slice it off
+                    return s
+                df[col] = df[col].apply(clean_phone)
+
+        # Check if required columns are in the dataframe
+        missing_columns = [col for col in COLUMN_MAPPINGS.keys() if col not in df.columns]
+        
+        if not missing_columns:
+
+            df_filtered = df[list(COLUMN_MAPPINGS.keys())].rename(columns=COLUMN_MAPPINGS)
+
+            df_compiled = columnComplier(df_filtered)
+
+            df = df_compiled
+
+            if hashtag:
+                df["Prospect"] = hashtag
+                
+                # Move hashtag to front
+                df = df[["Prospect"] + [c for c in df.columns if c != "Prospect"]]
+
+                # Display the resulting dataframe
+                st.write("Converted DataFrame:")
+                st.write(df)
+                
+                # Download the converted dataframe as CSV
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download converted CSV",
+                    data=csv,
+                    file_name='converted_file.csv',
+                    mime='text/csv',
+                )
+        else:
+            st.write(f"The uploaded file does not contain the required columns: {', '.join(missing_columns)}.")
+
+
+if __name__ == "__main__":
+    main()
