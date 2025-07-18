@@ -19,6 +19,11 @@ COLUMN_MAPPINGS = {
 }
 
 def columnComplier(df):
+    """
+    Main logic function to combine multiple email and phone number columns into one
+
+    Input: Pandas Dataframe with columns 'Email 2', 'Email 3', 'Cell Phone 2', and 'Cell Phone 3'
+    """
     emails = []
     phones = []
     df_copy = df.copy()
@@ -44,7 +49,7 @@ def columnComplier(df):
 
     def safe_phone_str(p):
         try:
-            # Convert float like 1234567890.0 to int, then to str
+            # Get rid of float values, as they cause a number with .0
             f = float(p)
             i = int(f)
             if f == i:
@@ -70,10 +75,15 @@ def columnComplier(df):
 
 
 def main():
-    st.title('Couch Drop to GoHighLevel CSV Converter')
+    """
+    Converts Couchdrop to GoHighLevel format
+
+    Drops extra columns
+    """
+    st.title('Couchdrop to GoHighLevel CSV Converter')
 
     st.info("""
-    Upload a CSV file. The app will convert your Couch Drop CSV into a format that can be imported into GoHighLevel.
+    Upload a CSV file. The app will convert your Couchdrop CSV into a format that can be imported into GoHighLevel.
     """)
 
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
@@ -89,9 +99,9 @@ def main():
             if col in df.columns:
                 df[col] = df[col].fillna('')
                 def clean_phone(x):
-                    s = str(x).strip() # Convert to string immediately and strip whitespace
-                    if s.endswith('.0'): # Check if it ends with .0
-                        return s[:-2]    # If so, slice it off
+                    s = str(x).strip()
+                    if s.endswith('.0'):
+                        return s[:-2]
                     return s
                 df[col] = df[col].apply(clean_phone)
 
@@ -112,11 +122,11 @@ def main():
                 # Move hashtag to front
                 df = df[["Prospect"] + [c for c in df.columns if c != "Prospect"]]
 
-                # Display the resulting dataframe
+                # Display
                 st.write("Converted DataFrame:")
                 st.write(df)
                 
-                # Download the converted dataframe as CSV
+                # Download
                 csv = df.to_csv(index=False).encode('utf-8')
                 st.download_button(
                     label="Download converted CSV",
