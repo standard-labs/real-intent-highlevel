@@ -10,8 +10,8 @@ COLUMN_MAPPINGS = {
     "email_2": "Email 2",
     "email_3": "Email 3",
     "phone_1": "Phone",
-    "phone_2": "Cell Phone 2",
-    "phone_3": "Cell Phone 3",
+    "phone_2": "Phone 2",
+    "phone_3": "Phone 3",
     "address": "Primary Address",
     "city": "Primary City",
     "state": "Primary State",
@@ -22,7 +22,7 @@ def columnComplier(df):
     """
     Main logic function to combine multiple email and phone number columns into one
 
-    Input: Pandas Dataframe with columns 'Email 2', 'Email 3', 'Cell Phone 2', and 'Cell Phone 3'
+    Input: Pandas Dataframe with columns 'Email 2', 'Email 3', 'Phone 2', and 'Phone 3'
     """
     emails = []
     phones = []
@@ -38,11 +38,11 @@ def columnComplier(df):
         if pd.notna(row.get('Email 3')):
             email_list.append(row['Email 3'])
 
-        # Combine Cell Phone 2 and 3
-        if pd.notna(row.get('Cell Phone 2')):
-            phone_list.append(row['Cell Phone 2'])
-        if pd.notna(row.get('Cell Phone 3')):
-            phone_list.append(row['Cell Phone 3'])
+        # Combine Phone 2 and 3
+        if pd.notna(row.get('Phone 2')):
+            phone_list.append(row['Phone 2'])
+        if pd.notna(row.get('Phone 3')):
+            phone_list.append(row['Phone 3'])
 
         emails.append(email_list)
         phones.append(phone_list)
@@ -64,11 +64,11 @@ def columnComplier(df):
     phones = [", ".join(map(str, p)) for p in phones]
 
     df_copy['Email 2'] = emails
-    df_copy['Cell Phone 2'] = phones
+    df_copy['Phone 2'] = phones
 
-    df_copy = df_copy.drop(columns=['Email 3', 'Cell Phone 3'], errors='ignore')
+    df_copy = df_copy.drop(columns=['Email 3', 'Phone 3'], errors='ignore')
 
-    df_copy.rename(columns={'Email 2': 'Additional email addresses', 'Cell Phone 2': 'Additional phone numbers'}, inplace=True)
+    df_copy.rename(columns={'Email 2': 'Additional email addresses', 'Phone 2': 'Additional phone numbers'}, inplace=True)
 
     return df_copy
     
@@ -94,7 +94,7 @@ def main():
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
         
-        phone_cols = ['Phone', 'Cell Phone 2', 'Cell Phone 3']
+        phone_cols = ['Phone', 'Phone 2', 'Phone 3']
         for col in phone_cols:
             if col in df.columns:
                 df[col] = df[col].fillna('')
