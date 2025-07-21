@@ -122,18 +122,18 @@ def main():
                 # Move hashtag to front
                 df = df[["Prospect"] + [c for c in df.columns if c != "Prospect"]]
 
-                # Display
-                st.write("Converted DataFrame:")
-                st.write(df)
+            # Display
+            st.write("Converted DataFrame:")
+            st.write(df)
                 
-                # Download
-                csv = df.to_csv(index=False).encode('utf-8')
-                st.download_button(
-                    label="Download converted CSV",
-                    data=csv,
-                    file_name='converted_file.csv',
-                    mime='text/csv',
-                )
+            # Download
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Download converted CSV",
+                data=csv,
+                file_name='converted_file.csv',
+                mime='text/csv',
+            )
         else:
             st.write(f"The uploaded file does not contain the required columns: {', '.join(missing_columns)}.")
 
