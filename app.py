@@ -93,17 +93,6 @@ def main():
 
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
-        
-        phone_cols = ['Phone', 'Phone 2', 'Phone 3']
-        for col in phone_cols:
-            if col in df.columns:
-                df[col] = df[col].fillna('')
-                def clean_phone(x):
-                    s = str(x).strip()
-                    if s.endswith('.0'):
-                        return s[:-2]
-                    return s
-                df[col] = df[col].apply(clean_phone)
 
         # Check if required columns are in the dataframe
         missing_columns = [col for col in COLUMN_MAPPINGS.keys() if col not in df.columns]
