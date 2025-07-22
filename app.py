@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-
 # Define global variables for column mappings
 COLUMN_MAPPINGS = {
     "first_name": "First Name",
@@ -16,6 +15,15 @@ COLUMN_MAPPINGS = {
     "city": "Primary City",
     "state": "Primary State",
     "zip_code": "Primary Zip",
+}
+
+HASHTAG_MAPPINGS = {
+    60177: "SouthElginRealIntent",
+    60126: "ElmhurstRealIntent",
+    60622: "WestParkWestTownRealIntent",
+    60010: "BarringtonRealIntent",
+    60045: "LakeForestRealIntent",
+    60564: "NapervilleRealIntent"
 }
 
 def columnComplier(df):
@@ -88,9 +96,6 @@ def main():
 
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
-    hashtag = st.text_input("(Optional) Enter a hashtag(s). For multiple hashtags, separate them with a '|' with no spaces.")
-    st.write("For example: Barrington|Naperville")
-
     if uploaded_file is not None:
         df = pd.read_csv(uploaded_file)
 
@@ -105,11 +110,16 @@ def main():
 
             df = df_compiled
 
-            if hashtag:
-                df["Prospect"] = hashtag
-                
-                # Move hashtag to front
-                df = df[["Prospect"] + [c for c in df.columns if c != "Prospect"]]
+            df_copy = df.copy()
+
+            df_copy["TAG"] = "Prospect"
+            df_copy = df_copy[["TAG"] + [c for c in df_copy.columns if c != "TAG"]]
+
+            df = df_copy
+
+            df["Source"] = HASHTAG_MAPPINGS[df.at[0, "Primary Zip"]]
+            # Move hashtag to front
+            df = df[["Source"] + [c for c in df.columns if c != "Source"]]
 
             # Display
             st.write("Converted DataFrame:")
