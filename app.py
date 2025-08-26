@@ -68,6 +68,11 @@ def columnComplier(df):
 
     phones = [[safe_phone_str(p) for p in phone_list] for phone_list in phones]
 
+    for i in range(len(phones)):
+        for j in range(len(phones[i])):
+            phones[i][j] = "+1" + phones[i][j]
+
+
     emails = [", ".join(map(str, e)) for e in emails]
     phones = [", ".join(map(str, p)) for p in phones]
 
@@ -80,6 +85,17 @@ def columnComplier(df):
 
     return df_copy
     
+def phoneParsing(df):
+    df_copy = df.copy()
+
+    df_copy.loc[df_copy["Phone"].notna(), "Phone"] = (
+        df_copy.loc[df_copy["Phone"].notna(), "Phone"]
+        .astype(int)
+        .astype(str)
+        .radd("+1")
+    )
+
+    return df_copy
 
 
 def main():
@@ -120,6 +136,16 @@ def main():
             df["Source"] = HASHTAG_MAPPINGS[df.at[0, "Primary Zip"]]
             # Move hashtag to front
             df = df[["Source"] + [c for c in df.columns if c != "Source"]]
+
+
+            df = phoneParsing(df)
+
+            '''
+            df["Phone"] = df["Phone"].apply(
+                lambda x: "+1" + str(int(x)) if pd.notna(x) else ""
+            )
+            df["Phone"] = df["Phone"].astype(str)
+            '''
 
             # Display
             st.write("Converted DataFrame:")
