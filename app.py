@@ -68,11 +68,12 @@ def columnComplier(df):
 
     phones = [[safe_phone_str(p) for p in phone_list] for phone_list in phones]
 
+    # Convert each phone number to have a '+1' US code in front
     for i in range(len(phones)):
         for j in range(len(phones[i])):
             phones[i][j] = "+1" + phones[i][j]
 
-
+    # Join additional emails/phone numbers
     emails = [", ".join(map(str, e)) for e in emails]
     phones = [", ".join(map(str, p)) for p in phones]
 
@@ -85,17 +86,6 @@ def columnComplier(df):
 
     return df_copy
     
-def phoneParsing(df):
-    df_copy = df.copy()
-
-    df_copy.loc[df_copy["Phone"].notna(), "Phone"] = (
-        df_copy.loc[df_copy["Phone"].notna(), "Phone"]
-        .astype(int)
-        .astype(str)
-        .radd("+1")
-    )
-
-    return df_copy
 
 
 def main():
@@ -110,6 +100,7 @@ def main():
     Upload a CSV file. The app will convert your Couchdrop CSV into a format that can be imported into GoHighLevel.
     """)
 
+    # Take input
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
     if uploaded_file is not None:
@@ -120,14 +111,17 @@ def main():
         
         if not missing_columns:
 
+            # Filter datafram column names to match GoHighLevel requirements
             df_filtered = df[list(COLUMN_MAPPINGS.keys())].rename(columns=COLUMN_MAPPINGS)
 
+            # Compile extra emails and phone numbers into one column
             df_compiled = columnComplier(df_filtered)
 
             df = df_compiled
 
             df_copy = df.copy()
 
+            # Add a tag to each lead as 'Prospect'
             df_copy["TAG"] = "Prospect"
             df_copy = df_copy[["TAG"] + [c for c in df_copy.columns if c != "TAG"]]
 
@@ -138,14 +132,12 @@ def main():
             df = df[["Source"] + [c for c in df.columns if c != "Source"]]
 
 
-            df = phoneParsing(df)
-
-            '''
+            # Convert each main phone number to have a '+1' US code in front
             df["Phone"] = df["Phone"].apply(
                 lambda x: "+1" + str(int(x)) if pd.notna(x) else ""
             )
             df["Phone"] = df["Phone"].astype(str)
-            '''
+
 
             # Display
             st.write("Converted DataFrame:")
