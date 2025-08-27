@@ -28,7 +28,7 @@ def get_auth_url():
         'response_type': 'code',
         'state': state,
         'redirect_uri': REDIRECT_URI,
-        'scope': 'api:create api:read api:update api:event',
+        'scope': 'contacts.write contacts.read',
     }
 
     return f"{HIGHLEVEL_AUTH_URL}/authorize?{urllib.parse.urlencode(params)}"
