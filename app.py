@@ -1,5 +1,10 @@
 import streamlit as st
 import pandas as pd
+import requests
+
+from auth import authenticate, get_auth_url, reset_session
+from utils import AuthError, columnComplier
+
 
 # Define global variables for column mappings
 COLUMN_MAPPINGS = {
@@ -26,66 +31,35 @@ HASHTAG_MAPPINGS = {
     60564: "NapervilleRealIntent"
 }
 
-def columnComplier(df):
-    """
-    Main logic function to combine multiple email and phone number columns into one
+def convertHighLevel(df):
+    # Filter datafram column names to match GoHighLevel requirements
+    df_filtered = df[list(COLUMN_MAPPINGS.keys())].rename(columns=COLUMN_MAPPINGS)
 
-    Input: Pandas Dataframe with columns 'Email 2', 'Email 3', 'Phone 2', and 'Phone 3'
-    """
-    emails = []
-    phones = []
+    # Compile extra emails and phone numbers into one column
+    df_compiled = columnComplier(df_filtered)
+
+    df = df_compiled
+
     df_copy = df.copy()
 
-    for _, row in df_copy.iterrows():
-        email_list = []
-        phone_list = []
+    # Add a tag to each lead as 'Prospect'
+    df_copy["TAG"] = "Prospect"
+    df_copy = df_copy[["TAG"] + [c for c in df_copy.columns if c != "TAG"]]
 
-        # Combine Email 2 and 3
-        if pd.notna(row.get('Email 2')):
-            email_list.append(row['Email 2'])
-        if pd.notna(row.get('Email 3')):
-            email_list.append(row['Email 3'])
+    df = df_copy
 
-        # Combine Phone 2 and 3
-        if pd.notna(row.get('Phone 2')):
-            phone_list.append(row['Phone 2'])
-        if pd.notna(row.get('Phone 3')):
-            phone_list.append(row['Phone 3'])
+    df["Source"] = HASHTAG_MAPPINGS[df.at[0, "Primary Zip"]]
+    # Move hashtag to front
+    df = df[["Source"] + [c for c in df.columns if c != "Source"]]
 
-        emails.append(email_list)
-        phones.append(phone_list)
 
-    def safe_phone_str(p):
-        try:
-            # Get rid of float values, as they cause a number with .0
-            f = float(p)
-            i = int(f)
-            if f == i:
-                return str(i)
-            return str(p)
-        except:
-            return str(p)
+    # Convert each main phone number to have a '+1' US code in front
+    df["Phone"] = df["Phone"].apply(
+        lambda x: "+1" + str(int(x)) if pd.notna(x) else ""
+    )
+    df["Phone"] = df["Phone"].astype(str)
 
-    phones = [[safe_phone_str(p) for p in phone_list] for phone_list in phones]
-
-    # Convert each phone number to have a '+1' US code in front
-    for i in range(len(phones)):
-        for j in range(len(phones[i])):
-            phones[i][j] = "+1" + phones[i][j]
-
-    # Join additional emails/phone numbers
-    emails = [", ".join(map(str, e)) for e in emails]
-    phones = [", ".join(map(str, p)) for p in phones]
-
-    df_copy['Email 2'] = emails
-    df_copy['Phone 2'] = phones
-
-    df_copy = df_copy.drop(columns=['Email 3', 'Phone 3'], errors='ignore')
-
-    df_copy.rename(columns={'Email 2': 'Additional email addresses', 'Phone 2': 'Additional phone numbers'}, inplace=True)
-
-    return df_copy
-    
+    return df
 
 
 def main():
@@ -100,6 +74,26 @@ def main():
     Upload a CSV file. The app will convert your Couchdrop CSV into a format that can be imported into GoHighLevel.
     """)
 
+
+    # -- Authentication --
+    
+    if "code" in st.query_params and "state" in st.query_params: 
+        try:
+            authenticate(st.query_params["code"], st.query_params["state"])      
+            st.query_params.clear()   
+        except AuthError as e:
+            st.warning(f"Authentication Error: {e.message}") 
+            st.query_params.clear()   
+        except Exception as e:
+            st.error(f"Unexpected Error: {e}")
+            st.query_params.clear()   
+            
+    if not st.session_state.get("authenticated"):
+        st.markdown(f"[Authenticate with GoHighLevel]({get_auth_url()})")
+    else:
+        st.success("You are authenticated with GoHighLevel.")
+
+
     # Take input
     uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
@@ -111,32 +105,7 @@ def main():
         
         if not missing_columns:
 
-            # Filter datafram column names to match GoHighLevel requirements
-            df_filtered = df[list(COLUMN_MAPPINGS.keys())].rename(columns=COLUMN_MAPPINGS)
-
-            # Compile extra emails and phone numbers into one column
-            df_compiled = columnComplier(df_filtered)
-
-            df = df_compiled
-
-            df_copy = df.copy()
-
-            # Add a tag to each lead as 'Prospect'
-            df_copy["TAG"] = "Prospect"
-            df_copy = df_copy[["TAG"] + [c for c in df_copy.columns if c != "TAG"]]
-
-            df = df_copy
-
-            df["Source"] = HASHTAG_MAPPINGS[df.at[0, "Primary Zip"]]
-            # Move hashtag to front
-            df = df[["Source"] + [c for c in df.columns if c != "Source"]]
-
-
-            # Convert each main phone number to have a '+1' US code in front
-            df["Phone"] = df["Phone"].apply(
-                lambda x: "+1" + str(int(x)) if pd.notna(x) else ""
-            )
-            df["Phone"] = df["Phone"].astype(str)
+            df = convertHighLevel(df)
 
 
             # Display
