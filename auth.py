@@ -4,7 +4,7 @@ import random
 import string
 import streamlit as st
 
-from config import CLIENT_ID, CLIENT_SECRET, HIGHLEVEL_AUTH_URL, REDIRECT_URI, HIGHLEVEL_URL
+from config import CLIENT_ID, CLIENT_SECRET, HIGHLEVEL_AUTH_URL, REDIRECT_URI, HIGHLEVEL_API_URL
 from utils import AuthError
 
 def reset_session():
@@ -45,7 +45,7 @@ def exchange_code_for_token(code):
     }
         
 
-    response = requests.post(f"{HIGHLEVEL_URL}/oauth/token", data=data)
+    response = requests.post(f"{HIGHLEVEL_API_URL}/oauth/token", data=data)
     response.raise_for_status()
     
     access_token = response.json().get("access_token", None)
@@ -73,7 +73,7 @@ def refresh_token() -> str:
         'client_secret': CLIENT_SECRET,
     }
 
-    response = requests.post(f"{HIGHLEVEL_AUTH_URL}/token", data=data)
+    response = requests.post(f"{HIGHLEVEL_API_URL}/oauth/token", data=data)
         
     if not response.ok:
         reset_session()
