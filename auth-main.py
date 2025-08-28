@@ -73,7 +73,7 @@ def refresh_token() -> str:
         'client_secret': CLIENT_SECRET,
     }
 
-    response = requests.post(f"{HIGHLEVEL_AUTH_URL}/token", data=data)
+    response = requests.post(f"{HIGHLEVEL_URL}/oauth/token", data=data)
         
     if not response.ok:
         reset_session()
