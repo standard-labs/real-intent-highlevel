@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-import requests
 
 from auth import authenticate, get_auth_url, reset_session
+from api import HighLevelDeliverer
 from utils import AuthError, columnComplier
 
 
@@ -107,19 +107,60 @@ def main():
 
             df = convertHighLevel(df)
 
-
             # Display
             st.write("Converted DataFrame:")
             st.write(df)
                 
-            # Download
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Download converted CSV",
-                data=csv,
-                file_name='converted_file.csv',
-                mime='text/csv',
-            )
+            # Allow the user to either download the CSV or send it directly to GoHighLevel
+            option = st.radio("Choose an action", ["Download CSV", "Send to GoHighLevel"])
+            
+            # -- Download CSV --
+
+            if option == "Download CSV":
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label="Download converted CSV",
+                    data=csv,
+                    file_name='converted_file.csv',
+                    mime='text/csv',
+                )
+                
+            # -- Send to GoHighLevel --
+            
+            elif option == "Send to GoHighLevel" and st.session_state.get("authenticated"):
+                try:                    
+                    if st.button("Deliver Data to GoHighLevel"):
+                    
+                        with st.spinner("Preparing leads for delivery..."):
+                            deliverer = HighLevelDeliverer(
+                                access_token=st.session_state["access_token"],
+                                n_threads=5,
+                            )
+                        
+                            deliver_df = df.replace({float('nan'): None}, inplace=False)
+                        
+                        with st.spinner("Delivering leads..."):
+                            deliverer.deliver(deliver_df)
+                            failed_leads = deliverer.get_failed_leads()                     
+
+                            if failed_leads:
+                                st.error(f"{len(failed_leads)} leads failed to deliver.")
+                                
+                                with st.expander("Click to see failed lead details"):
+                                    for failed in failed_leads:
+                                        st.error(f"{failed['md5']}: {failed['error']}")  
+                            else:
+                                st.success("All leads delivered successfully!")
+                                
+                except AuthError as e:
+                    reset_session()
+                    st.warning(f"{e}")
+                except Exception as e:
+                    st.error(e)
+                    
+            elif option == "Send to GoHighLevel":
+                st.warning("Please authenticate first to send data to GoHighLevel.")
+                
         else:
             st.write(f"The uploaded file does not contain the required columns: {', '.join(missing_columns)}.")
 
