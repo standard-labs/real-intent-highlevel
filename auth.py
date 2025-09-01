@@ -51,11 +51,13 @@ def exchange_code_for_token(code):
     
     access_token = response.json().get("access_token", None)
     refresh_token = response.json().get("refresh_token", None)
-    location_id = response.json().get("location_id", None)
+    location_id = response.json().get("locationId", None)
     
     if not access_token or not refresh_token:
         reset_session()
         raise AuthError("Access or Refresh token not found in response.")
+    
+    print(response.status_code, response.json())
 
     st.session_state["access_token"] = access_token
     st.session_state["refresh_token"] = refresh_token
@@ -84,14 +86,16 @@ def refresh_token() -> str:
     
     new_access_token = response.json().get("access_token", None)
     new_refresh_token = response.json().get("refresh_token", None)
-    
+    location_id = response.json().get("locationId", None)
+
     if not new_access_token:
         reset_session()
         raise AuthError("Access token not found in refresh response.")
     
     st.session_state["access_token"] = new_access_token
     st.session_state["refresh_token"] = new_refresh_token if new_refresh_token else st.session_state["refresh_token"] # update refresh only if it is returned
-    
+    st.session_state["location_id"] = location_id
+
     return new_access_token
     
 
