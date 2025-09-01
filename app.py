@@ -135,7 +135,8 @@ def main():
                             deliverer = HighLevelDeliverer(
                                 access_token=st.session_state["access_token"],
                                 location_id=st.session_state["location_id"],
-                                n_threads=5
+                                n_threads=5,
+                                source=HASHTAG_MAPPINGS[df_highlevel.at[0, "zip_code"]]
                             )
                         
                             deliver_df = df_highlevel.replace({float('nan'): None}, inplace=False)

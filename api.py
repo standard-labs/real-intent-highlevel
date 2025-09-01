@@ -14,6 +14,7 @@ class HighLevelDeliverer():
             self, 
             access_token: str,
             location_id: str,
+            source: str,
             base_url: str = HIGHLEVEL_API_URL,
             n_threads: int = 1
         ):
@@ -36,6 +37,7 @@ class HighLevelDeliverer():
         self.n_threads: int = n_threads
 
         self.location_id: str = location_id
+        self.source: str = source
 
         # Make sure API credentials are valid
         if not self._verify_api_credentials():
@@ -238,6 +240,10 @@ class HighLevelDeliverer():
             "city": contact_info["city"],
             "state": contact_info["state"],
             "postalCode": contact_info["postalCode"],
+            "source": self.source,
+            "tags": [
+                "Prospect"
+            ]
         }
                         
         return event_data
