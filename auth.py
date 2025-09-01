@@ -56,8 +56,6 @@ def exchange_code_for_token(code):
     if not access_token or not refresh_token:
         reset_session()
         raise AuthError("Access or Refresh token not found in response.")
-    
-    print(response.status_code, response.json())
 
     st.session_state["access_token"] = access_token
     st.session_state["refresh_token"] = refresh_token

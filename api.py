@@ -13,9 +13,10 @@ class HighLevelDeliverer():
 
     def __init__(
             self, 
-            access_token: str, 
+            access_token: str,
+            location_id: str,
             base_url: str = HIGHLEVEL_API_URL,
-            n_threads: int = 1,
+            n_threads: int = 1
         ):
         """
         Initialize the HighLevelDeliverer.
@@ -35,9 +36,12 @@ class HighLevelDeliverer():
         # Configuration stuff
         self.n_threads: int = n_threads
 
+        self.location_id: str = location_id
+
         # Make sure API credentials are valid
+        '''
         if not self._verify_api_credentials():
-            raise AuthError("Could not verify credentials for GoHighLevel delivery. Please re-authenticate.")
+            raise AuthError("Could not verify credentials for GoHighLevel delivery. Please re-authenticate.")'''
     
     def get_failed_leads(self) -> list[dict]:
         """
@@ -71,19 +75,31 @@ class HighLevelDeliverer():
             bool: True if the credentials are valid, False otherwise.
         """
     
+        data = {
+            "locationId": self.location_id,
+            "query": "",
+            "filters": {},  # empty dict, not None
+            "page": 1,
+            "pageLimit": 1
+        }
+
         response = requests.post(
             f"{self.base_url}/contacts/search",
-            headers=self.api_headers
+            headers=self.api_headers,
+            json=data
         )
-        
+
+        print(response.status_code, response.json())
+
         if response.status_code == 401:
             self.access_token = refresh_token()
             response = requests.post(
                 f"{self.base_url}/contacts/search",
-                headers=self.api_headers
+                headers=self.api_headers,
+                json=data
             )
-            raise AuthError("401 error. The access token did not work")
             return response.ok
+        
         return response.ok
     
     def deliver(self, data: pd.DataFrame) -> list[dict]:
@@ -145,14 +161,14 @@ class HighLevelDeliverer():
                 
         # get all the required info
         md5: str | None = lead.get("md5")
-        firstName: str | None = lead.get("firstName")
-        lastName: str | None = lead.get("lastName")
+        firstName: str | None = lead.get("first_name")
+        lastName: str | None = lead.get("last_name")
         email: str | None = lead.get("email_1")
         phone_1: str | None = str(lead.get("phone_1")) if lead.get("phone_1") else None
         address: str | None = lead.get("address")
         city: str | None = lead.get("city")
         state: str | None = lead.get("state")
-        postalCode: str | None = str(lead.get("postalCode")) if lead.get("postalCode") else None
+        postalCode: str | None = str(lead.get("zip_code")) if lead.get("zip_code") else None
         
         print("trace", f"Preparing event data for MD5: {md5}, firstName: {firstName}, lastName: {lastName}")
 
@@ -214,7 +230,7 @@ class HighLevelDeliverer():
             value = lead.get(key)
             if pd.notna(value) and value != "":
                 note_lines[key] = value
-
+        '''
         if note_lines:
             notes.append({
                 "content": "\n".join(note_lines),
@@ -222,7 +238,8 @@ class HighLevelDeliverer():
                 "created_by": "Real Intent",
                 "created_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "is_pinned": True,
-            })  
+            })
+        '''
                  
             
         # Prepare event data according to GoHighLevel API schema
@@ -231,8 +248,7 @@ class HighLevelDeliverer():
             "lastName": contact_info["lastName"],
             "name": contact_info["firstName"] + " " + contact_info["lastName"],
             "email": contact_info["email"],
-            # TODO: Update locationId
-            "locationId": "ve9EPM428h8vShlRW1KT",
+            "locationId": self.location_id,
             "gender": note_lines["gender"],
             "phone": contact_info["phone"],
             "address1": contact_info["address1"],

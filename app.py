@@ -80,7 +80,7 @@ def main():
     if "code" in st.query_params and "state" in st.query_params: 
         try:
             authenticate(st.query_params["code"], st.query_params["state"])      
-            st.query_params.clear()   
+            st.query_params.clear()
         except AuthError as e:
             st.warning(f"Authentication Error: {e.message}") 
             st.query_params.clear()   
@@ -114,7 +114,6 @@ def main():
                 
             # Allow the user to either download the CSV or send it directly to GoHighLevel
             option = st.radio("Choose an action", ["Download CSV", "Send to GoHighLevel"])
-            
             # -- Download CSV --
 
             if option == "Download CSV":
@@ -135,7 +134,8 @@ def main():
                         with st.spinner("Preparing leads for delivery..."):
                             deliverer = HighLevelDeliverer(
                                 access_token=st.session_state["access_token"],
-                                n_threads=5,
+                                location_id=st.session_state["location_id"],
+                                n_threads=5
                             )
                         
                             deliver_df = df_highlevel.replace({float('nan'): None}, inplace=False)
