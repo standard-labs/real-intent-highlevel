@@ -58,6 +58,7 @@ class HighLevelDeliverer():
         """
         return {
             "Authorization": f"Bearer {self.access_token}",
+            "Version": "2021-07-28",
             "Content-Type": "application/json",
         }
     
@@ -70,25 +71,20 @@ class HighLevelDeliverer():
             bool: True if the credentials are valid, False otherwise.
         """
     
-        # TODO: /me probably doesn't work here
-        response = requests.get(
-            f"{self.base_url}/contacts",
+        response = requests.post(
+            f"{self.base_url}/contacts/search",
             headers=self.api_headers
         )
         
         if response.status_code == 401:
             self.access_token = refresh_token()
-            response = requests.get(
-                f"{self.base_url}/contacts",
+            response = requests.post(
+                f"{self.base_url}/contacts/search",
                 headers=self.api_headers
             )
-            print("401 error")
+            raise AuthError("401 error. The access token did not work")
             return response.ok
-        elif response.ok:
-            return True
-        else:
-            print("other error")
-            return False
+        return response.ok
     
     def deliver(self, data: pd.DataFrame) -> list[dict]:
         """
