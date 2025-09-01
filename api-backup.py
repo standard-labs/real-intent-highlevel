@@ -8,8 +8,8 @@ from config import HIGHLEVEL_API_URL
 from utils import rate_limited, AuthError
 from auth import refresh_token
 
-class HighLevelDeliverer():
-    """Delivers data to GoHighLevel CRM."""
+class CINCDeliverer():
+    """Delivers data to CINC CRM."""
 
     def __init__(
             self, 
@@ -23,16 +23,16 @@ class HighLevelDeliverer():
             n_threads: int = 1,
         ):
         """
-        Initialize the HighLevelDeliverer.
+        Initialize the CINCDeliverer.
 
         Args:
-            access_token (str): The user's access token for GoHighLevel.
+            access_token (str): The user's access token for CINC.
             tags (list[str], optional): A list of tags to be added to the lead. Defaults to None.
             add_zip_tags (bool, optional): Whether to add zip code tags. Defaults to True.
             primary_agent (str, optional): The primary agent to be assigned to the lead. Defaults to None.
             listing_agent (str, optional): The listing agent to be assigned to the lead. Defaults to None.
             partner (str, optional): The partner to be assigned to the lead. Defaults to None.
-            base_url (str, optional): The base URL for the GoHighLevel API. Defaults to HIGHLEVEL_API_URL.
+            base_url (str, optional): The base URL for the CINC API. Defaults to HIGHLEVEL_API_URL.
             n_threads (int, optional): The number of threads to use for delivering leads. Defaults to 1.
         """
         
@@ -52,7 +52,7 @@ class HighLevelDeliverer():
 
         # Make sure API credentials are valid
         if not self._verify_api_credentials():
-            raise AuthError("Could not verify credentials for GoHighLevel delivery. Please re-authenticate.")
+            raise AuthError("Could not verify credentials for CINC delivery. Please re-authenticate.")
     
     def get_failed_leads(self) -> list[dict]:
         """
@@ -66,7 +66,7 @@ class HighLevelDeliverer():
     @property
     def api_headers(self) -> dict:
         """
-        Generate the API headers for GoHighLevel requests.
+        Generate the API headers for CINC requests.
 
         Returns:
             dict: A dictionary containing the necessary headers for API requests.
@@ -104,13 +104,13 @@ class HighLevelDeliverer():
     
     def deliver(self, data: pd.DataFrame) -> list[dict]:
         """
-        Deliver the PII data to GoHighLevel.
+        Deliver the PII data to CINC.
 
         Args:
             pii_md5s (list[MD5WithPII]): A list of MD5WithPII objects containing the PII data to be delivered.
 
         Returns:
-            list[dict]: A list of response dictionaries from the GoHighLevel API for each delivered event.
+            list[dict]: A list of response dictionaries from the CINC API for each delivered event.
         """
         
         with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
@@ -118,13 +118,13 @@ class HighLevelDeliverer():
 
     def _deliver_single_lead(self, lead: pd.Series) -> dict:
         """
-        Deliver a single lead to GoHighLevel.
+        Deliver a single lead to CINC.
 
         Args:
             lead (pd.Series): A single row of the dataframe containing the PII data.
 
         Returns:
-            dict: A response dictionary from the GoHighLevel API for the delivered event.
+            dict: A response dictionary from the CINC API for the delivered event.
         """
         try:
 
@@ -156,7 +156,7 @@ class HighLevelDeliverer():
             lead (pd.Series): A single row of the dataframe containing the PII data.
 
         Returns:
-            dict: A dictionary containing the prepared event data for the GoHighLevel API.
+            dict: A dictionary containing the prepared event data for the CINC API.
         """
                 
         # get all the required info
@@ -190,7 +190,7 @@ class HighLevelDeliverer():
             except (ValueError, TypeError):
                 return str(value).strip()
             
-        # phones won't show up in GoHighLevel, if they aren't exactly 10 digits with no decimal point    
+        # phones won't show up in CINC, if they aren't exactly 10 digits with no decimal point    
         phone_numbers: dict[str, str | None] = {}
         if phone_1:
             phone_numbers["cell_phone"] = _clean_phone(phone_1)
@@ -258,7 +258,7 @@ class HighLevelDeliverer():
         if self.add_zip_tags and lead["zip_code"]:
             pass        
             
-        # Prepare event data according to GoHighLevel API schema
+        # Prepare event data according to CINC API schema
         event_data: dict[str, Any] = {
             "registered_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),            
             "info":{
@@ -285,13 +285,13 @@ class HighLevelDeliverer():
     @rate_limited()
     def _send_event(self, event_data: dict) -> dict:
         """
-        Send an event to the GoHighLevel API.
+        Send an event to the CINC API.
 
         Args:
             event_data (dict): The prepared event data to be sent to the API.
 
         Returns:
-            dict: The response from the GoHighLevel API, either the JSON response or an ignored status message.
+            dict: The response from the CINC API, either the JSON response or an ignored status message.
 
         Raises:
             requests.exceptions.HTTPError: If the API request fails.

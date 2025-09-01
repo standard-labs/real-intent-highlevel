@@ -57,7 +57,7 @@ class HighLevelDeliverer():
             dict: A dictionary containing the necessary headers for API requests.
         """
         return {
-            "Authorization": f"{self.access_token}",
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
     
@@ -69,22 +69,25 @@ class HighLevelDeliverer():
         Returns:
             bool: True if the credentials are valid, False otherwise.
         """
-                
+    
+        # TODO: /me probably doesn't work here
         response = requests.get(
-            f"{self.base_url}/me",
+            f"{self.base_url}/contacts",
             headers=self.api_headers
         )
         
         if response.status_code == 401:
             self.access_token = refresh_token()
             response = requests.get(
-                f"{self.base_url}/me",
+                f"{self.base_url}/contacts",
                 headers=self.api_headers
             )
+            print("401 error")
             return response.ok
         elif response.ok:
             return True
         else:
+            print("other error")
             return False
     
     def deliver(self, data: pd.DataFrame) -> list[dict]:
@@ -146,28 +149,25 @@ class HighLevelDeliverer():
                 
         # get all the required info
         md5: str | None = lead.get("md5")
-        first_name: str | None = lead.get("first_name")
-        last_name: str | None = lead.get("last_name")
+        firstName: str | None = lead.get("firstName")
+        lastName: str | None = lead.get("lastName")
         email: str | None = lead.get("email_1")
         phone_1: str | None = str(lead.get("phone_1")) if lead.get("phone_1") else None
-        phone_2: str | None = str(lead.get("phone_2")) if lead.get("phone_2") else None
-        phone_3: str | None = str(lead.get("phone_3")) if lead.get("phone_3") else None
         address: str | None = lead.get("address")
         city: str | None = lead.get("city")
         state: str | None = lead.get("state")
-        zip_code: str | None = str(lead.get("zip_code")) if lead.get("zip_code") else None
+        postalCode: str | None = str(lead.get("postalCode")) if lead.get("postalCode") else None
         
-        print("trace", f"Preparing event data for MD5: {md5}, first_name: {first_name}, last_name: {last_name}")
+        print("trace", f"Preparing event data for MD5: {md5}, firstName: {firstName}, lastName: {lastName}")
 
         # Prepare contact info
         contact_info: dict[str, Any] = {}
         
-        contact_info["first_name"] = first_name
-        contact_info["last_name"] = last_name
+        contact_info["firstName"] = firstName
+        contact_info["lastName"] = lastName
 
         if email:        
             contact_info["email"] = email
-            contact_info["is_validated_email"] = True
         
         def _clean_phone(value):
             try:
@@ -176,23 +176,14 @@ class HighLevelDeliverer():
                 return str(value).strip()
             
         # phones won't show up in GoHighLevel, if they aren't exactly 10 digits with no decimal point    
-        phone_numbers: dict[str, str | None] = {}
         if phone_1:
-            phone_numbers["cell_phone"] = _clean_phone(phone_1)
-        if phone_2:
-            phone_numbers["home_phone"] = _clean_phone(phone_2)
-        if phone_3:
-            phone_numbers["work_phone"] = _clean_phone(phone_3)
-        
-        contact_info["phone_numbers"] = phone_numbers
-            
-        if all([address, city, state, zip_code]):
-            contact_info["mailing_address"] = {
-                "street": address,
-                "city": city,
-                "state": state,
-                "postal_or_zip": zip_code
-            }
+            phone_1 = _clean_phone(phone_1)
+
+        contact_info["phone"] = phone_1
+        contact_info["address1"] = address
+        contact_info["city"] = city
+        contact_info["state"] = state
+        contact_info["postalCode"] = postalCode
         
         # Add Notes
         notes: list[dict[str, str]] = []
@@ -222,11 +213,11 @@ class HighLevelDeliverer():
             "investment_type": "Investment Type",  
         }
         
-        note_lines = []
+        note_lines: dict[str, Any] = {}
         for key, label in note_field_map.items():
             value = lead.get(key)
             if pd.notna(value) and value != "":
-                note_lines.append(f"{label}: {value}")
+                note_lines[key] = value
 
         if note_lines:
             notes.append({
@@ -239,25 +230,19 @@ class HighLevelDeliverer():
                  
             
         # Prepare event data according to GoHighLevel API schema
-        event_data: dict[str, Any] = {
-            "registered_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),            
-            "info":{
-                "status": "unworked",
-                "source": "Real Intent",
-                "contact": contact_info,
-            },
-            "assigned_agents":{
-                "primary_agent": {
-                    "id": self.primary_agent,
-                },
-                "listing_agent": {
-                    "id": self.listing_agent,
-                },
-                "partner": {
-                    "id": self.partner,
-                },
-            },
-            "notes": notes,
+        event_data: dict[str, Any] = {         
+            "firstName": contact_info["firstName"],
+            "lastName": contact_info["lastName"],
+            "name": contact_info["firstName"] + " " + contact_info["lastName"],
+            "email": contact_info["email"],
+            # TODO: Update locationId
+            "locationId": "ve9EPM428h8vShlRW1KT",
+            "gender": note_lines["gender"],
+            "phone": contact_info["phone"],
+            "address1": contact_info["address1"],
+            "city": contact_info["city"],
+            "state": contact_info["state"],
+            "postalCode": contact_info["postalCode"],
         }
                         
         return event_data
