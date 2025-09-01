@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
 import requests
-import datetime
 import pandas as pd
 from typing import Any
 
@@ -78,7 +77,7 @@ class HighLevelDeliverer():
         data = {
             "locationId": self.location_id,
             "query": "",
-            "filters": {},  # empty dict, not None
+            "filters": {},
             "page": 1,
             "pageLimit": 1
         }
@@ -88,8 +87,6 @@ class HighLevelDeliverer():
             headers=self.api_headers,
             json=data
         )
-
-        print(response.status_code, response.json())
 
         if response.status_code == 401:
             self.access_token = refresh_token()
@@ -197,8 +194,6 @@ class HighLevelDeliverer():
         contact_info["state"] = state
         contact_info["postalCode"] = postalCode
         
-        # Add Notes
-        notes: list[dict[str, str]] = []
         
         note_field_map = {
             "insight": "AI-Enhanced Insight",
@@ -230,16 +225,6 @@ class HighLevelDeliverer():
             value = lead.get(key)
             if pd.notna(value) and value != "":
                 note_lines[key] = value
-        '''
-        if note_lines:
-            notes.append({
-                "content": "\n".join(note_lines),
-                "category": "info",
-                "created_by": "Real Intent",
-                "created_date": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "is_pinned": True,
-            })
-        '''
                  
             
         # Prepare event data according to GoHighLevel API schema
