@@ -104,6 +104,7 @@ def main():
         missing_columns = [col for col in COLUMN_MAPPINGS.keys() if col not in df.columns]
         
         if not missing_columns:
+            df_highlevel = df.copy()
 
             df = convertHighLevel(df)
 
@@ -137,7 +138,7 @@ def main():
                                 n_threads=5,
                             )
                         
-                            deliver_df = df.replace({float('nan'): None}, inplace=False)
+                            deliver_df = df_highlevel.replace({float('nan'): None}, inplace=False)
                         
                         with st.spinner("Delivering leads..."):
                             deliverer.deliver(deliver_df)
