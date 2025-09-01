@@ -13,6 +13,7 @@ def reset_session():
     st.session_state["refresh_token"] = None
     st.session_state["username"] = None
     st.session_state["state"] = None
+    st.session_state["location_id"] = None
 
 
 def generate_state():
@@ -24,11 +25,11 @@ def get_auth_url():
     st.session_state["state"] = state
 
     params = {
-        'client_id': CLIENT_ID,
-        'response_type': 'code',
-        'state': state,
-        'redirect_uri': REDIRECT_URI,
-        'scope': 'contacts.write contacts.read',
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "client_id": CLIENT_ID,
+        "scope": "contacts.write contacts.readonly",
+        "state": state,
     }
 
     return f"{HIGHLEVEL_AUTH_URL}?{urllib.parse.urlencode(params)}"
@@ -37,11 +38,11 @@ def get_auth_url():
 def exchange_code_for_token(code):
     """Exchange and store access and refresh tokens."""
     data = {
-        'grant_type': 'authorization_code',
-        'code': code,
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
         'redirect_uri': REDIRECT_URI,
+        'grant_type': 'authorization_code',
+        'code': code,
     }
         
 
@@ -50,6 +51,7 @@ def exchange_code_for_token(code):
     
     access_token = response.json().get("access_token", None)
     refresh_token = response.json().get("refresh_token", None)
+    location_id = response.json().get("location_id", None)
     
     if not access_token or not refresh_token:
         reset_session()
@@ -57,6 +59,7 @@ def exchange_code_for_token(code):
 
     st.session_state["access_token"] = access_token
     st.session_state["refresh_token"] = refresh_token
+    st.session_state["location_id"] = location_id
 
 
 def refresh_token() -> str:
@@ -67,10 +70,10 @@ def refresh_token() -> str:
 
     
     data = {
-        'grant_type': 'refresh_token',
-        'refresh_token': st.session_state["refresh_token"],
         'client_id': CLIENT_ID,
         'client_secret': CLIENT_SECRET,
+        'grant_type': 'refresh_token',
+        'refresh_token': st.session_state["refresh_token"],
     }
 
     response = requests.post(f"{HIGHLEVEL_API_URL}/oauth/token", data=data)
