@@ -38,9 +38,8 @@ class HighLevelDeliverer():
         self.location_id: str = location_id
 
         # Make sure API credentials are valid
-        '''
         if not self._verify_api_credentials():
-            raise AuthError("Could not verify credentials for GoHighLevel delivery. Please re-authenticate.")'''
+            raise AuthError("Could not verify credentials for GoHighLevel delivery. Please re-authenticate.")
     
     def get_failed_leads(self) -> list[dict]:
         """
@@ -77,7 +76,6 @@ class HighLevelDeliverer():
         data = {
             "locationId": self.location_id,
             "query": "",
-            "filters": {},
             "page": 1,
             "pageLimit": 1
         }
